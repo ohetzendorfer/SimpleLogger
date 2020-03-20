@@ -10,7 +10,7 @@ import Foundation
 public struct Logger {
     
     public static func setup(topicMessages: [LoggerTopicMessage], defaultTopicMessage: LoggerTopicMessage?) {
-        LoggerStorage.shared.topicMessages = topicMessages
+        LoggerStorage.shared.topicMessages.append(contentsOf: topicMessages)
         LoggerStorage.shared.defaultTopicMessage = defaultTopicMessage
     }
     
