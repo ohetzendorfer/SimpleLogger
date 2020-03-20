@@ -16,17 +16,20 @@ public struct Logger {
     
     public static func output(_ output: Any, _ topicMessage: LoggerTopicMessage? = nil) {
         if let topicMessage = topicMessage {
-            guard LoggerStorage.shared.topicMessages.contains(where: { $0.id == topicMessage.id }) else { return }
             printOutput(output, topicMessage: topicMessage)
-        } else if let defaultType = LoggerStorage.shared.defaultTopicMessage {
-            printOutput(output, topicMessage: defaultType)
+        } else if let defaultTopicMessage = LoggerStorage.shared.defaultTopicMessage {
+            printOutput(output, topicMessage: defaultTopicMessage)
         }
     }
     
     private static func printOutput(_ output: Any, topicMessage: LoggerTopicMessage) {
+        guard LoggerStorage.shared.topicMessages.contains(where: { $0.id == topicMessage.id }) else { return }
+        print("\(topicMessage.icon) \(topicMessage.title)\t\t\(getPrintableDate())\t\t\(output)")
+    }
+    
+    private static func getPrintableDate() -> String {
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "HH:mm:ss.SSS"
-        let date = dateFormatter.string(from: Date())
-        print("\(topicMessage.icon) \(topicMessage.title)\t\t\(date)\t\t\(output)")
+        return dateFormatter.string(from: Date())
     }
 }
