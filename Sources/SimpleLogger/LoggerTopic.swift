@@ -5,8 +5,7 @@
 //  Created by Oliver on 20.03.20.
 //
 
-public protocol LoggerTopicMessage {
-    var id: String { get }
+public protocol LoggerTopic {
     var title: String { get }
-    var icon: String { get }
+    var icon: Character { get }
 }

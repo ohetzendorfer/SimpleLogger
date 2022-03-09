@@ -7,27 +7,29 @@
 
 import Foundation
 
-public struct Logger {
+public struct Logger<Topic: LoggerTopic> {
+
+    var topicType: Topic.Type
+    var defaultTopic: Topic
     
-    public static func setup(topicMessages: [LoggerTopicMessage], defaultTopicMessage: LoggerTopicMessage?) {
-        LoggerStorage.shared.topicMessages.append(contentsOf: topicMessages)
-        LoggerStorage.shared.defaultTopicMessage = defaultTopicMessage
+    public func output(
+        _ output: Any,
+        _ topic: Topic? = nil
+    ) {
+        printOutput(
+            output,
+            topic: topic ?? defaultTopic
+        )
     }
     
-    public static func output(_ output: Any, _ topicMessage: LoggerTopicMessage? = nil) {
-        if let topicMessage = topicMessage {
-            printOutput(output, topicMessage: topicMessage)
-        } else if let defaultTopicMessage = LoggerStorage.shared.defaultTopicMessage {
-            printOutput(output, topicMessage: defaultTopicMessage)
-        }
+    private func printOutput(
+        _ output: Any,
+        topic: Topic
+    ) {
+        print("\(topic.icon) \(topic.title)\t\t\(getPrintableDate())\t\t\(output)")
     }
     
-    private static func printOutput(_ output: Any, topicMessage: LoggerTopicMessage) {
-        guard LoggerStorage.shared.topicMessages.contains(where: { $0.id == topicMessage.id }) else { return }
-        print("\(topicMessage.icon) \(topicMessage.title)\t\t\(getPrintableDate())\t\t\(output)")
-    }
-    
-    private static func getPrintableDate() -> String {
+    private func getPrintableDate() -> String {
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "HH:mm:ss.SSS"
         return dateFormatter.string(from: Date())
