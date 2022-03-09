@@ -8,4 +8,5 @@
 public protocol LoggerTopic {
     var title: String { get }
     var icon: Character { get }
+    var isShowable: Bool { get }
 }

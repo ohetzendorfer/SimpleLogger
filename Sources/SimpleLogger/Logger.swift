@@ -34,6 +34,7 @@ public struct Logger<Topic: LoggerTopic> {
         _ output: Any,
         topic: Topic
     ) {
+        guard topic.isShowable else { return }
         print("\(topic.icon) \(topic.title)\t\t\(getPrintableDate())\t\t\(output)")
     }
     
