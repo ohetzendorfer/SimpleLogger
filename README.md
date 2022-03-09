@@ -45,9 +45,4 @@ let logger = Logger(
     topicType: MyTopic.self,
     defaultTopic: .verbose
 )
-```swift
-### Logging
-```
-logger.output("logging something") // using default .verbose
-logger.output("is this working?", .debug)
 ```
