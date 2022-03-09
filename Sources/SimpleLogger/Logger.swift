@@ -9,9 +9,17 @@ import Foundation
 
 public struct Logger<Topic: LoggerTopic> {
 
-    var topicType: Topic.Type
-    var defaultTopic: Topic
-    
+    public var topicType: Topic.Type
+    public var defaultTopic: Topic
+
+    public init(
+        topicType: Topic.Type,
+        defaultTopic: Topic
+    ) {
+        self.topicType = topicType
+        self.defaultTopic = defaultTopic
+    }
+
     public func output(
         _ output: Any,
         _ topic: Topic? = nil
