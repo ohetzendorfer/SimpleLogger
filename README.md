@@ -46,3 +46,8 @@ let logger = Logger(
     defaultTopic: .verbose
 )
 ```
+### Logging
+```swift
+logger.output("logging something") // using default .verbose
+logger.output("is this working?", .debug)
+```
