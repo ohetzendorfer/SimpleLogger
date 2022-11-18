@@ -24,18 +24,28 @@ public struct Logger<Topic: LoggerTopic> {
         _ output: Any,
         _ topic: Topic? = nil
     ) {
-        printOutput(
-            output,
-            topic: topic ?? defaultTopic
-        )
+
+        let safeTopic = topic ?? defaultTopic
+
+        guard safeTopic.isShowable else { return }
+        printOutput(output, safeTopic)
+
+        guard let isWriteToFile = safeTopic.writeToFile, isWriteToFile else { return }
+        writeOutput(output, safeTopic)
     }
     
     private func printOutput(
         _ output: Any,
-        topic: Topic
+        _ topic: Topic
     ) {
-        guard topic.isShowable else { return }
         print("\(topic.icon) \(topic.title)\t\t\(getPrintableDate())\t\t\(output)")
+    }
+
+    private func writeOutput(
+        _ output: Any,
+        _ topic: Topic
+    ) {
+        // TODO: implement file logging
     }
     
     private func getPrintableDate() -> String {
