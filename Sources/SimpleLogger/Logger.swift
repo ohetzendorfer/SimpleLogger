@@ -55,7 +55,16 @@ public struct Logger<Topic: LoggerTopic> {
         guard let outputData = getOutputAsString(output, topic).data(using: .utf8) else { return }
 
         do {
-            if fileManager.fileExists(atPath: logFile.absoluteString) {
+
+            let logFileExists: Bool
+
+            if #available(iOS 16.0, *) {
+                logFileExists = fileManager.fileExists(atPath: logFile.path())
+            } else {
+                logFileExists = fileManager.fileExists(atPath: logFile.path)
+            }
+
+            if logFileExists {
                 try appendToExistingLogFile(logFile: logFile, data: outputData)
             } else {
                 try createNewLogFile(logFile: logFile, data: outputData)
