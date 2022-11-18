@@ -16,7 +16,7 @@ public struct Logger<Topic: LoggerTopic> {
     private let logLineDateFormatter = Logger.getDateFormatter(for: "HH:mm:ss.SSS")
     private let logFileNameDateFormatter = Logger.getDateFormatter(for: "yyyy-MM-dd")
 
-    private static let newLine = "\n".data(using: .utf8)!
+    private let newLine = "\n".data(using: .utf8)!
 
     public init(
         topicType: Topic.Type,
@@ -85,7 +85,7 @@ public struct Logger<Topic: LoggerTopic> {
                 fileHandle.seekToEndOfFile()
             }
 
-            fileHandle.write(Logger.newLine)
+            fileHandle.write(newLine)
             fileHandle.write(data)
 
             if #available(iOS 13.0, *) {
