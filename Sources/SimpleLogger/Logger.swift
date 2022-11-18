@@ -105,7 +105,7 @@ public struct Logger<Topic: LoggerTopic> {
         return documentsDirectory
     }
 
-    private func getLogDirectory() -> URL {
+    public func getLogDirectory() -> URL {
 
         let logDirectoryName = "logs"
         var logDirectory: URL
