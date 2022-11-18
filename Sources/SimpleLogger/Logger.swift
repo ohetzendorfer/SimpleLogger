@@ -129,7 +129,12 @@ public struct Logger<Topic: LoggerTopic> {
 
     private func directoryExists(path: URL) -> Bool {
         var isDirectory : ObjCBool = true
-        let exists = FileManager.default.fileExists(atPath: path.absoluteString, isDirectory: &isDirectory)
+        let exists: Bool
+        if #available(iOS 16.0, *) {
+            exists = fileManager.fileExists(atPath: path.path(), isDirectory: &isDirectory)
+        } else {
+            exists = fileManager.fileExists(atPath: path.path, isDirectory: &isDirectory)
+        }
         return exists && isDirectory.boolValue
     }
 
