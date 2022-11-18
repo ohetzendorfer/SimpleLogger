@@ -75,12 +75,31 @@ public struct Logger<Topic: LoggerTopic> {
     }
 
     private func getLogDirectory() -> URL {
-        let logDirectory = "logs"
+
+        let logDirectoryName = "logs"
+        var logDirectory: URL
+
         if #available(iOS 16.0, *) {
-            return getDocumentsDirectory().appending(path: logDirectory)
+            logDirectory = getDocumentsDirectory().appending(path: logDirectoryName)
         } else {
-            return getDocumentsDirectory().appendingPathComponent(logDirectory)
+            logDirectory = getDocumentsDirectory().appendingPathComponent(logDirectoryName)
         }
+
+        if !directoryExists(path: logDirectory) {
+            do {
+                try fileManager.createDirectory(at: logDirectory, withIntermediateDirectories: false)
+            } catch {
+                print("Could not create directory '\(logDirectory)'")
+            }
+        }
+
+        return logDirectory
+    }
+
+    private func directoryExists(path: URL) -> Bool {
+        var isDirectory : ObjCBool = true
+        let exists = FileManager.default.fileExists(atPath: path.absoluteString, isDirectory: &isDirectory)
+        return exists && isDirectory.boolValue
     }
 
     private func getLogFile() -> URL {
