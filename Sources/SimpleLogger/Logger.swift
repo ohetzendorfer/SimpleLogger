@@ -34,7 +34,7 @@ public struct Logger<Topic: LoggerTopic> {
         guard safeTopic.isShowable else { return }
         printOutput(output, safeTopic)
 
-        guard let isWriteToFile = safeTopic.writeToFile, isWriteToFile else { return }
+        guard safeTopic.isWriteToFile else { return }
         writeOutput(output, safeTopic)
     }
     
@@ -49,12 +49,43 @@ public struct Logger<Topic: LoggerTopic> {
         _ output: Any,
         _ topic: Topic
     ) {
-        let outputData = getOutputAsString(output, topic).data(using: .utf8)
+
+        let logFile = getLogFile()
+
+        guard let outputData = getOutputAsString(output, topic).data(using: .utf8) else { return }
+
         do {
-            try outputData?.write(to: getLogFile())
+            if fileManager.fileExists(atPath: logFile.absoluteString) {
+                try appendToExistingLogFile(logFile: logFile, data: outputData)
+            } else {
+                try createNewLogFile(logFile: logFile, data: outputData)
+            }
         } catch {
-            print("Could not write to logfile, caught: \(error)")
+            print("Could not write data to logfile, caught: \(error)")
         }
+    }
+
+    private func appendToExistingLogFile(logFile: URL, data: Data) throws {
+        if let fileHandle = try? FileHandle(forWritingTo: logFile) {
+
+            if #available(iOS 13.4, *) {
+                try fileHandle.seekToEnd()
+            } else {
+                fileHandle.seekToEndOfFile()
+            }
+
+            fileHandle.write(data)
+
+            if #available(iOS 13.0, *) {
+                try fileHandle.close()
+            } else {
+                fileHandle.closeFile()
+            }
+        }
+    }
+
+    private func createNewLogFile(logFile: URL, data: Data) throws {
+        try data.write(to: logFile, options: .atomic)
     }
 
     private func getOutputAsString(
