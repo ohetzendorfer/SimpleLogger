@@ -12,6 +12,10 @@ public struct Logger<Topic: LoggerTopic> {
     public var topicType: Topic.Type
     public var defaultTopic: Topic
 
+    private let fileManager = FileManager.default
+    private let logLineDateFormatter = Logger.getDateFormatter(for: "HH:mm:ss.SSS")
+    private let logFileNameDateFormatter = Logger.getDateFormatter(for: "yyyy-MM-dd")
+
     public init(
         topicType: Topic.Type,
         defaultTopic: Topic
@@ -38,19 +42,59 @@ public struct Logger<Topic: LoggerTopic> {
         _ output: Any,
         _ topic: Topic
     ) {
-        print("\(topic.icon) \(topic.title)\t\t\(getPrintableDate())\t\t\(output)")
+        print(getOutputAsString(output, topic))
     }
 
     private func writeOutput(
         _ output: Any,
         _ topic: Topic
     ) {
-        // TODO: implement file logging
+        let outputData = getOutputAsString(output, topic).data(using: .utf8)
+        do {
+            try outputData?.write(to: getLogFile())
+        } catch {
+            print("Could not write to logfile, caught: \(error)")
+        }
     }
-    
+
+    private func getOutputAsString(
+        _ output: Any,
+        _ topic: Topic
+    ) -> String {
+        return "\(topic.icon) \(topic.title)\t\t\(getPrintableDate())\t\t\(output)"
+    }
+
     private func getPrintableDate() -> String {
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "HH:mm:ss.SSS"
-        return dateFormatter.string(from: Date())
+        return logLineDateFormatter.string(from: Date())
+    }
+
+    private func getDocumentsDirectory() -> URL {
+        let paths = fileManager.urls(for: .documentDirectory, in: .userDomainMask)
+        let documentsDirectory = paths[0]
+        return documentsDirectory
+    }
+
+    private func getLogDirectory() -> URL {
+        let logDirectory = "logs"
+        if #available(iOS 16.0, *) {
+            return getDocumentsDirectory().appending(path: logDirectory)
+        } else {
+            return getDocumentsDirectory().appendingPathComponent(logDirectory)
+        }
+    }
+
+    private func getLogFile() -> URL {
+        let logFile = logFileNameDateFormatter.string(from: Date()) + ".log"
+        if #available(iOS 16.0, *) {
+            return getLogDirectory().appending(path: logFile)
+        } else {
+            return getLogDirectory().appendingPathComponent(logFile)
+        }
+    }
+
+    private static func getDateFormatter(for pattern: String) -> DateFormatter {
+        let formatter = DateFormatter()
+        formatter.dateFormat = pattern
+        return formatter
     }
 }
