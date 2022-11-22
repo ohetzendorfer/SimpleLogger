@@ -12,11 +12,9 @@ public struct Logger<Topic: LoggerTopic> {
     public var topicType: Topic.Type
     public var defaultTopic: Topic
 
-    private let fileManager = FileManager.default
+    private let newLine: Data? = "\n".data(using: .utf8)
     private let logLineDateFormatter = Logger.getDateFormatter(for: "HH:mm:ss.SSS")
     private let logFileNameDateFormatter = Logger.getDateFormatter(for: "yyyy-MM-dd")
-
-    private let newLine = "\n".data(using: .utf8)!
 
     public init(
         topicType: Topic.Type,
@@ -30,16 +28,16 @@ public struct Logger<Topic: LoggerTopic> {
         _ output: Any,
         _ topic: Topic? = nil
     ) {
-
         let safeTopic = topic ?? defaultTopic
 
-        guard safeTopic.isShowable else { return }
-        printOutput(output, safeTopic)
-
-        guard safeTopic.isWriteToFile else { return }
-        writeOutput(output, safeTopic)
+        if safeTopic.printInConsole {
+            printOutput(output, safeTopic)
+        }
+        if safeTopic.writeToFile {
+            writeOutput(output, safeTopic)
+        }
     }
-    
+
     private func printOutput(
         _ output: Any,
         _ topic: Topic
@@ -51,53 +49,52 @@ public struct Logger<Topic: LoggerTopic> {
         _ output: Any,
         _ topic: Topic
     ) {
-
-        let logFile = getLogFile()
-
+        let logFileUrl = getLogFileUrl()
         guard let outputData = getOutputAsString(output, topic).data(using: .utf8) else { return }
 
         do {
-
             let logFileExists: Bool
+            let fileManager = FileManager.default
 
             if #available(iOS 16.0, *) {
-                logFileExists = fileManager.fileExists(atPath: logFile.path())
+                logFileExists = fileManager.fileExists(atPath: logFileUrl.path())
             } else {
-                logFileExists = fileManager.fileExists(atPath: logFile.path)
+                logFileExists = fileManager.fileExists(atPath: logFileUrl.path)
             }
 
             if logFileExists {
-                try appendToExistingLogFile(logFile: logFile, data: outputData)
+                try appendToExistingLogFile(url: logFileUrl, data: outputData)
             } else {
-                try createNewLogFile(logFile: logFile, data: outputData)
+                try createNewLogFile(url: logFileUrl, data: outputData)
             }
         } catch {
             print("Could not write data to logfile, caught: \(error)")
         }
     }
 
-    private func appendToExistingLogFile(logFile: URL, data: Data) throws {
-        if let fileHandle = try? FileHandle(forWritingTo: logFile) {
+    private func appendToExistingLogFile(url: URL, data: Data) throws {
+        let fileHandle = try FileHandle(forWritingTo: url)
 
-            if #available(iOS 13.4, *) {
-                try fileHandle.seekToEnd()
-            } else {
-                fileHandle.seekToEndOfFile()
-            }
+        if #available(iOS 13.4, *) {
+            try fileHandle.seekToEnd()
+        } else {
+            fileHandle.seekToEndOfFile()
+        }
 
+        if let newLine {
             fileHandle.write(newLine)
-            fileHandle.write(data)
+        }
+        fileHandle.write(data)
 
-            if #available(iOS 13.0, *) {
-                try fileHandle.close()
-            } else {
-                fileHandle.closeFile()
-            }
+        if #available(iOS 13.0, *) {
+            try fileHandle.close()
+        } else {
+            fileHandle.closeFile()
         }
     }
 
-    private func createNewLogFile(logFile: URL, data: Data) throws {
-        try data.write(to: logFile, options: .atomic)
+    private func createNewLogFile(url: URL, data: Data) throws {
+        try data.write(to: url, options: .atomic)
     }
 
     private func getOutputAsString(
@@ -112,13 +109,12 @@ public struct Logger<Topic: LoggerTopic> {
     }
 
     private func getDocumentsDirectory() -> URL {
-        let paths = fileManager.urls(for: .documentDirectory, in: .userDomainMask)
+        let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
         let documentsDirectory = paths[0]
         return documentsDirectory
     }
 
-    public func getLogDirectory() -> URL {
-
+    public func getLogDirectoryUrl() -> URL {
         let logDirectoryName = "logs"
         var logDirectory: URL
 
@@ -130,18 +126,19 @@ public struct Logger<Topic: LoggerTopic> {
 
         if !directoryExists(path: logDirectory) {
             do {
-                try fileManager.createDirectory(at: logDirectory, withIntermediateDirectories: false)
+                try FileManager.default.createDirectory(at: logDirectory, withIntermediateDirectories: false)
             } catch {
                 print("Could not create directory '\(logDirectory)'")
             }
         }
-
         return logDirectory
     }
 
     private func directoryExists(path: URL) -> Bool {
-        var isDirectory : ObjCBool = true
+        var isDirectory: ObjCBool = true
         let exists: Bool
+        let fileManager = FileManager.default
+
         if #available(iOS 16.0, *) {
             exists = fileManager.fileExists(atPath: path.path(), isDirectory: &isDirectory)
         } else {
@@ -150,12 +147,12 @@ public struct Logger<Topic: LoggerTopic> {
         return exists && isDirectory.boolValue
     }
 
-    private func getLogFile() -> URL {
+    private func getLogFileUrl() -> URL {
         let logFile = logFileNameDateFormatter.string(from: Date()) + ".log"
         if #available(iOS 16.0, *) {
-            return getLogDirectory().appending(path: logFile)
+            return getLogDirectoryUrl().appending(path: logFile)
         } else {
-            return getLogDirectory().appendingPathComponent(logFile)
+            return getLogDirectoryUrl().appendingPathComponent(logFile)
         }
     }
 
