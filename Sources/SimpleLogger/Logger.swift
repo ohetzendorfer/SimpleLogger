@@ -145,10 +145,10 @@ public struct Logger<Topic: LoggerTopic> {
     }
 
     private func getUniqueDeviceId() -> UUID {
-        if let deviceId = UIDevice.current.identifierForVendor {
-            return deviceId
+        guard let deviceId = UIDevice.current.identifierForVendor else {
+            fatalError("Could not evaluate a unique device ID")
         }
-        return UUID()
+        return deviceId
     }
 
     private func getLogFileUrl() -> URL {
