@@ -27,8 +27,9 @@ These booleans define if your logs should appear as output on the console and if
 on the device itself.
 
 If you enable the `writeToFile` flag the library will create a directory in your app's `Documents` folder named `logs`.
-In this directory you will find log files per day that contain all logs that return `true` for the `writeToFile` flag.
-The directory containing the logs can be retrieved using the function `Logger#getLogDirectoryUrl`.
+In this directory there will be a unique subfolder in which you will find log files per day that contain all logs that
+return `true` for the `writeToFile` flag. The directory containing the logs can be retrieved using the function 
+`Logger#getLogDirectoryUrl`.
 
 
 ```swift

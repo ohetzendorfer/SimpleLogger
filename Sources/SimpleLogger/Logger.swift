@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import UIKit
 
 public struct Logger<Topic: LoggerTopic> {
 
@@ -115,13 +116,18 @@ public struct Logger<Topic: LoggerTopic> {
     }
 
     public func getLogDirectoryUrl() -> URL {
+        let uniqueDeviceId = getUniqueDeviceId()
         let logDirectoryName = "logs"
         var logDirectory: URL
 
         if #available(iOS 16.0, *) {
-            logDirectory = getDocumentsDirectory().appending(path: logDirectoryName)
+            logDirectory = getDocumentsDirectory()
+                .appending(path: logDirectoryName)
+                .appending(path: uniqueDeviceId.uuidString)
         } else {
-            logDirectory = getDocumentsDirectory().appendingPathComponent(logDirectoryName)
+            logDirectory = getDocumentsDirectory()
+                .appendingPathComponent(logDirectoryName)
+                .appendingPathComponent(uniqueDeviceId.uuidString)
         }
 
         if !directoryExists(path: logDirectory) {
@@ -132,6 +138,13 @@ public struct Logger<Topic: LoggerTopic> {
             }
         }
         return logDirectory
+    }
+
+    private func getUniqueDeviceId() -> UUID {
+        if let deviceId = UIDevice.current.identifierForVendor {
+            return deviceId
+        }
+        return UUID()
     }
 
     private func directoryExists(path: URL) -> Bool {
