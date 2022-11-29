@@ -16,6 +16,7 @@ public struct Logger<Topic: LoggerTopic> {
     private let newLine: Data? = "\n".data(using: .utf8)
     private let logLineDateFormatter = Logger.getDateFormatter(for: "HH:mm:ss.SSS")
     private let logFileNameDateFormatter = Logger.getDateFormatter(for: "yyyy-MM-dd")
+    private let logFileSuffix = ".log"
 
     public init(
         topicType: Topic.Type,
@@ -36,6 +37,9 @@ public struct Logger<Topic: LoggerTopic> {
         }
         if safeTopic.writeToFile {
             writeOutput(output, safeTopic)
+        }
+        if let autoDeleteLogFiles = safeTopic.configuration?.autoDelteLogFiles, autoDeleteLogFiles {
+            handleLogFileRollOver(for: safeTopic)
         }
     }
 
@@ -130,7 +134,7 @@ public struct Logger<Topic: LoggerTopic> {
                 .appendingPathComponent(uniqueDeviceId.uuidString)
         }
 
-        if !directoryExists(path: logDirectory) {
+        if !logDirectory.existsAndIsDirectory() {
             do {
                 try FileManager.default.createDirectory(at: logDirectory, withIntermediateDirectories: false)
             } catch {
@@ -147,31 +151,114 @@ public struct Logger<Topic: LoggerTopic> {
         return deviceId
     }
 
-    private func directoryExists(path: URL) -> Bool {
-        var isDirectory: ObjCBool = true
-        let exists: Bool
-        let fileManager = FileManager.default
-
-        if #available(iOS 16.0, *) {
-            exists = fileManager.fileExists(atPath: path.path(), isDirectory: &isDirectory)
-        } else {
-            exists = fileManager.fileExists(atPath: path.path, isDirectory: &isDirectory)
-        }
-        return exists && isDirectory.boolValue
+    private func getLogFileUrl() -> URL {
+        let logFile = logFileNameDateFormatter.string(from: Date()) + logFileSuffix
+        return getLogDirectoryUrl().safeAppending(path: logFile)
     }
 
-    private func getLogFileUrl() -> URL {
-        let logFile = logFileNameDateFormatter.string(from: Date()) + ".log"
-        if #available(iOS 16.0, *) {
-            return getLogDirectoryUrl().appending(path: logFile)
-        } else {
-            return getLogDirectoryUrl().appendingPathComponent(logFile)
+    private func handleLogFileRollOver(for topic: Topic) {
+
+        let autoDeleteLogFiles = topic.configuration?.autoDelteLogFiles ?? Constants.DEFAULT_AUTO_DELETE_LOG_FILES
+        guard autoDeleteLogFiles else  { return }
+
+        let keepLogsForDays = topic.configuration?.keepLogsForDays ?? Constants.DEFAULT_FILE_ROLLOVER_IN_DAYS
+        let logDirectoryUrl = getLogDirectoryUrl()
+
+        if !logDirectoryUrl.isEmptyDirectory() {
+            guard let keepFilesUntil = Date().subtract(days: keepLogsForDays) else {
+                fatalError("Could not evaluate the threshold date for log files to keep.")
+            }
+
+            for logFile in logDirectoryUrl.listFiles() {
+                if let logFileDate = parseDateFromLogFileName(logFileName: logFile),
+                   logFileDate.isBefore(keepFilesUntil) {
+                    logDirectoryUrl.safeAppending(path: logFile).deleteFile()
+                }
+            }
         }
+    }
+
+    private func parseDateFromLogFileName(logFileName: String) -> Date? {
+        return logFileNameDateFormatter.date(from: logFileName.removeSuffix(suffix: logFileSuffix))
     }
 
     private static func getDateFormatter(for pattern: String) -> DateFormatter {
         let formatter = DateFormatter()
         formatter.dateFormat = pattern
         return formatter
+    }
+}
+
+// MARK: URL Extensions
+private extension URL {
+
+    func safePath() -> String {
+        if #available(iOS 16.0, *) {
+            return path()
+        } else {
+            return path
+        }
+    }
+
+    func safeAppending(path: String) -> URL {
+        if #available(iOS 16.0, *) {
+            return appending(path: path)
+        } else {
+            return appendingPathComponent(path)
+        }
+    }
+
+    func existsAndIsDirectory() -> Bool {
+        var isDirectory: ObjCBool = true
+        let exists = FileManager.default.fileExists(atPath: safePath(), isDirectory: &isDirectory)
+        return exists && isDirectory.boolValue
+    }
+
+    func isEmptyDirectory() -> Bool {
+        guard existsAndIsDirectory() else { return false }
+        do {
+            return try FileManager.default.contentsOfDirectory(atPath: safePath()).isEmpty
+        } catch {
+            fatalError("Could not check if \(safePath()) is an empty directory, got: \(error)")
+        }
+    }
+
+    func listFiles() -> [String] {
+        do {
+            return try FileManager.default.contentsOfDirectory(atPath: safePath())
+        } catch {
+            fatalError("Could not list files at path \(safePath()), got: \(error)")
+        }
+    }
+
+    func deleteFile() {
+        do {
+            try FileManager.default.removeItem(atPath: safePath())
+        } catch {
+            fatalError("Could not delete file at \(safePath()), got: \(error)")
+        }
+    }
+}
+
+// MARK: Date Extensions
+private extension Date {
+    func subtract(days: Int) -> Date? {
+        var signedDays = days
+        if signedDays.signum() == 1 {
+            signedDays.negate()
+        }
+        return Calendar.current.date(byAdding: .day, value: signedDays, to: self)
+    }
+
+    func isBefore(_ other: Date) -> Bool {
+        return self < other
+    }
+}
+
+// MARK: String Extensions
+private extension String {
+    func removeSuffix(suffix: String) -> String {
+        guard self.hasSuffix(suffix) else { return self }
+        return String(self.dropLast(suffix.count))
     }
 }
